@@ -8,24 +8,28 @@ import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Loader from '../Loader/Loader';
 import { toast, Toaster } from 'react-hot-toast';
 import MovieModal from '../MovieModal/MovieModal';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import ReactPaginate from 'react-paginate';
 
 function App() {
   const [query, setQuery] = useState('');
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [page, setPage] = useState(1);
 
   const { data, isSuccess, isLoading, isError } = useQuery({
-    queryKey: ['movies', query],
-    queryFn: () => fetchMovies(query),
+    queryKey: ['movies', query, page],
+    queryFn: () => fetchMovies(query, page),
     enabled: query !== '',
+    placeholderData: keepPreviousData,
   });
   useEffect(() => {
-    if (isSuccess && data.length === 0) {
+    if (isSuccess && data?.results.length === 0) {
       toast.error('No movies found for your request.');
     }
   }, [data, isSuccess]);
   const onSubmit = async (value: string) => {
     setQuery(value);
+    setPage(1);
   };
   const handleSelect = (movie: Movie) => {
     setSelectedMovie(movie);
@@ -37,13 +41,29 @@ function App() {
   return (
     <div className={css.app}>
       <SearchBar onSubmit={onSubmit} />
-      {isSuccess && data?.length > 0 && (
-        <MovieGrid movies={data} onSelect={handleSelect} />
+      {isSuccess && data?.totalPages > 1 && (
+        <ReactPaginate
+          pageCount={data.totalPages}
+          pageRangeDisplayed={5}
+          marginPagesDisplayed={1}
+          onPageChange={({ selected }) => setPage(selected + 1)}
+          forcePage={page - 1}
+          containerClassName={css.pagination}
+          activeClassName={css.active}
+          nextLabel="→"
+          previousLabel="←"
+        />
+      )}
+      {isSuccess && data?.results.length > 0 && (
+        <MovieGrid movies={data.results} onSelect={handleSelect} />
       )}
       {selectedMovie && <MovieModal onClose={onClose} movie={selectedMovie} />}
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
       <Toaster position="top-center" reverseOrder={false} />
+      {isSuccess && data?.results.length > 0 && (
+        <button onClick={() => setPage(page + 1)}>Load more</button>
+      )}
     </div>
   );
 }
