@@ -58,12 +58,9 @@ function App() {
         <MovieGrid movies={data.results} onSelect={handleSelect} />
       )}
       {selectedMovie && <MovieModal onClose={onClose} movie={selectedMovie} />}
-      {isLoading && <Loader />}
-      {isError && <ErrorMessage />}
+      {isLoading && query !== '' && <Loader />}
+      {isError && query !== '' && <ErrorMessage />}
       <Toaster position="top-center" reverseOrder={false} />
-      {isSuccess && data?.results.length > 0 && (
-        <button onClick={() => setPage(page + 1)}>Load more</button>
-      )}
     </div>
   );
 }
